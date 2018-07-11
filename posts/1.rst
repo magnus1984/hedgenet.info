@@ -1,27 +1,60 @@
-.. title: Welcome to Nikola
-.. slug: welcome-to-nikola
-.. date: 2012-03-30 23:00:00 UTC-03:00
-.. tags: nikola, python, demo, blog
-.. author: Roberto Alsina
-.. link: https://getnikola.com/
-.. description:
-.. category: nikola
+.. title: Deploying a static website on S3 with an SSL certificate using the AWS DevOps toolchain
+.. slug: static-s3-cloudformation
+.. date: 2018-07-10
+.. tags: aws, s3, static, cloudformation, devops
+.. author: Jonathan Pelletier
+.. description: tutorial on how to deploy, using cloudformation,  a static website using an AWS S3 bucket with an SSL certificate
+.. category: technology
+.. link: https://github.com/jomagnus1984/statics3website
 
-.. figure:: https://farm1.staticflickr.com/138/352972944_4f9d568680.jpg
-   :target: https://farm1.staticflickr.com/138/352972944_4f9d568680_z.jpg?zz=1
+.. figure:: /images/blog_post_s3.png
+   :target: /images/blog_post_s3.png
    :class: thumbnail
-   :alt: Nikola Tesla Corner by nicwest, on Flickr
+   :alt: Deploying a static website DevOps style
 
-If you can see this in a web browser, it means you managed to install Nikola,
-and build a site using it. Congratulations!
+AWS S3 makes it really easy to host a website composed entirely of static 
+assets. This is especially well suited for hosting the output of static 
+websites generators such as `jekyll <https://jekyllrb.com/>`_, 
+`nikola <https://getnikola.com/>`_ or `gatsby <https://www.gatsbyjs.org/>`_. 
+In this tutorial, I will show you how you can deploy your static website on S3 
+with an SSL certificate created in Certificate Manager.  I will be using this 
+blog as a use case and show you how you can leverage AWS tools such as 
+CloudFormation, CodeBuild and CodePipeline to completely automate the 
+deployment of new content to as many environment as you like. 
+Let's get started !
 
-Next steps:
+Objective and tasks breakdown
+-----------------------------
+Our objective at the end of this will be to have enduser access a website using
+https. we will also want fully automated deployments of new content so that
+publishing is triggered by a simple commit. We will break down the tasks of
+this tutorial in 3 parts:
 
-* :doc:`Read the manual <handbook>`
-* `Visit the Nikola website to learn more <https://getnikola.com>`__
-* `See a demo photo gallery <link://gallery/demo>`__
-* :doc:`See a demo listing <listings-demo>`
-* :doc:`See a demo slideshow <slides-demo>`
-* :doc:`See a demo of a longer text <dr-nikolas-vendetta>`
+1. Prerequisite.
+2. Infrastructure.
+3. DevOps pipeline.
 
-Send feedback to info@getnikola.com!
+In the prerequisite section, we will focus on obtaining a certificate for
+our website from AWS Certificate Manager.
+
+In the infrastructure section, we will present the architecture required to
+support our static website. We will be using a CloudFormation template
+to specify and deploy our website.
+
+Finally, in the DevOps pipeline section, we will create a pipeline that 
+automatically triggers an update of our website upon a commit on the MASTER
+branch of our site repository.
+
+The CloudFormation templates used in this tutorial are all available on 
+github.
+
+Prerequisite
+------------
+https requires you to have a certificate issued by a certificate authority
+in order to operate properly. Here we will be requesting a certificate from
+AWS Certificate Manager for a domain name purchased with AWS Route 53. Here
+are the instructions to get your certificate:
+
+1. login to the aws console at `<https://console.aws.amazon.com>`_
+2. 
+
