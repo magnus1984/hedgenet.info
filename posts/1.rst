@@ -210,5 +210,12 @@ The buildspec file
 
 Conclusion
 ----------
+You now know how to deploy a static website using an SSL certificate managed by AWS Certificate Manager.
+All of the infrastructure needed to achieve this goal is specified in CloudFormation templates
+(including the DevOps pipeline). Publishing new content is simply a matter of pushing changes to
+the master branch of your website repository. What you just built makes for a very modern and convenient
+way to blog while maintaining total control over everything. Congratulations !
+
+
 
 
