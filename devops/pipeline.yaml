@@ -1,0 +1,30 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: DevOps Pipeline Specification for a static website
+
+Parameters:
+    PipelineName:
+        Type: String
+        Description: Your desired project name
+    GithubRepo:
+        Type: String
+        Description: Url to the repo containing the source
+
+Resources:
+    CodeBuildIAMRole:
+        Type: 'AWS::IAM::Role'
+        Properties:
+
+
+    BuildServer:
+        Type: 'AWS::CodeBuild::Project'
+        Properties: 
+            Artifacts: 
+                Location: !Ref OutputBucketArn
+                Name: ''
+                Type: 'S3'
+            Environment:
+                ComputeType: 'BUILD_GENERAL1_SMALL'
+                Image: 'aws/codebuild/python:3.6.5'
+                Type: 'LINUX_CONTAINER'
+            Name: !Ref PipelineName
+    
