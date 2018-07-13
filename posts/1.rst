@@ -1,13 +1,13 @@
 .. title: Deploying a static website on S3 with an SSL certificate using the AWS DevOps tools
 .. slug: static-s3-cloudformation
 .. date: 2018-07-10
-.. tags: aws, s3, static, cloudformation, devops, cloudfront, blog, beginner
+.. tags: aws, s3, static, cloudformation, devops, cloudfront, blog, beginner, tutorial
 .. author: Jonathan Pelletier
 .. description: tutorial on how to deploy a static website using an AWS S3 bucket with an SSL certificate
 .. category: technology
 
-.. figure:: /images/blog_post_s3.png
-   :target: /images/blog_post_s3.png
+.. figure:: /images/blog_static_website_main_image.png
+   :target: /images/blog_static_website_main_image.png
    :class: thumbnail
    :alt: Deploying a static website DevOps style
 
@@ -16,7 +16,7 @@ assets. This is especially well suited for hosting the output of static
 websites generators such as `jekyll <https://jekyllrb.com/>`_, 
 `nikola <https://getnikola.com/>`_ or `gatsby <https://www.gatsbyjs.org/>`_. 
 In this tutorial, I will show you how you can deploy your static website on S3 
-with an SSL certificate created in Certificate Manager. I will be using this 
+with an SSL certificate created in AWS Certificate Manager. I will be using this 
 blog as a use case and show you how you can leverage AWS tools such as 
 CloudFormation and CodeBuild to completely automate the 
 deployment of new content to your production environment.
@@ -25,13 +25,13 @@ deployment of new content to your production environment.
 Objective and tasks breakdown
 -----------------------------
 Our objective at the end of this tutorial will be to have our end users access 
-a website using https. we will also want fully automated deployments of new 
-content, so that publishing is triggered by a simple commit. We will break down 
-the tasks of this tutorial in 3 parts:
+a static website using https. We will also want fully automated deployments of new 
+content, so that publishing is triggered by a simple commit and push to a github repository where our blog source is hosted. 
+We will break down the tasks of this tutorial in 3 parts:
 
 1. Prerequisite.
 2. Infrastructure.
-3. DevOps pipeline.
+3. DevOps.
 
 In the Prerequisite section, we will focus on obtaining a certificate for
 our website from AWS Certificate Manager.
@@ -40,21 +40,20 @@ In the infrastructure section, we will present the architecture required to
 support our static website. We will be using a CloudFormation template
 to specify resources and deploy our website.
 
-Finally, in the DevOps pipeline section, we will create a pipeline that 
-automatically triggers an update of our website upon a commit on the MASTER
-branch of our site repository.
+Finally, in the DevOps section, we will create a build project that 
+automatically triggers an update of our website upon a commit and push to our source repository.
 
-The CloudFormation templates used in this tutorial are all available on 
-`github <https://github.com>`_ .
+The CloudFormation templates used in this tutorial are all available on the
+`github repository of this blog <https://github.com/magnus1984/hedgenet.info.git>`_.
 
 Prerequisite
 ------------
-https requires you to have a certificate issued by a certificate authority
-in order to operate properly. Here we will be requesting a certificate from
-AWS Certificate Manager for a domain name managed in AWS Route 53. 
+`https <https://en.wikipedia.org/wiki/HTTPS>`_ requires you to have a certificate issued by a certificate 
+authority in order to operate properly. Here, we will be requesting a certificate from
+AWS Certificate Manager for a domain name that we already own and manage in AWS Route 53. 
 
 In order to get a certificate, we will need to prove that we own the domain.
-We do this by showing certificate manager we have control over the resource. 
+We do this by showing Certificate Manager we have control over the resource. 
 AWS Certificate Manager allows you to prove control in two ways:
 
 1. Email verification of ownership.
@@ -64,14 +63,10 @@ In this post we will use DNS verification.
 
 How does DNS verification works ?
 +++++++++++++++++++++++++++++++++
-Assuming you own the domain name hedgenet.info and would like to have a 
-certificate covering the following domains:
-
-1. hedgenet.info.
-2. mysubdomain.hedgenet.info.
-
-Certificate Manager will require you to create an additional subdomain for 
-every domains in the requests. Here is a picture showing what we need to do:
+Assuming you own the domain name `hedgener.info <https://hedgenet.info/>`_, and would like to have a 
+certificate for mysubdomain.hedgenet.info. Certificate Manager will require you 
+to create records in AWS Route 53 that will proove that you have control over mysubdomain.hedgenet.info.
+Here is a picture showing what we need to do:
 
 .. figure:: /images/dns_validation.png
    :target: /images/dns_validation.png
@@ -80,23 +75,22 @@ every domains in the requests. Here is a picture showing what we need to do:
 
    CNAME records to create in Route 53.
 
-If we are able to create the subdomains Certificate Manager requests,
-then this means we have control over them and our certificate can be issued.
+Certificate Manager will expect to be able to read these values and will confirm that
+you are indeed custodian of the domain in the certificate request.
 
 Once you understand how verification operates, you can just turn the crank and 
 carry out the steps through the aws console. I will briefly mentions the steps 
 required to have our certificate issued:
 
-1. login to the aws console `here <https://console.aws.amazon.com>`_.
-2. go to Certificate Manager and choose *request a public certificate*.
+1. go to the AWS Certificate Manager console `here <https://console.aws.amazon.com/acm>`_.
+2. click on *request a certificate* and select request a public certificate.
 3. add the domain names for which you need a certificate.
 4. download the .csv file generated by Certificate Manager; it contains the records you will have to create in Route 53.
-5. head over to Route 53 and create the CNAME found in your .csv file.
+5. head over to `AWS Route 53 <https://console.aws.amazon.com/route53>`_ and create the CNAME found in your .csv file.
 
 Once you are done, allow a few minutes for Certificate Manager to verify your
-domains ownership. I have done this in my AWS account for hedgenet.info. What
-you end up with at the end of the verification process should look like this
-in Certificate Manager:
+domains ownership. I have done this in my AWS account for the domain hedgenet.info. What
+you end up with at the end of the verification process should look like this:
 
 .. figure:: /images/hedgenet_certificate.png
    :target: /images/hedgenet_certificate.png
@@ -105,17 +99,15 @@ in Certificate Manager:
 
    Certificate Manager after a successful issuance.
 
-This step is done only once, so it is acceptable to do it manually.
-
 With our certificate in hand, we can now move on to a discussion about the
 necessary infrastructure components for our website and how to deploy it.
 
 Infrastructure
 --------------
-If https was not one of our requirements, we would only need an S3 bucket and
-a bit of Route 53 config for our hosting solution. To serve our content over
-https, we will need to use CloudFront; a global Content Delivery Network.
-Here is the architecture we will be deploying:
+To allow users to access our site with http (notice, no s at the end), we would only need an S3 bucket and
+a bit of Route 53 config for our hosting architecture. To serve our content over
+https, we will require the use of `AWS CloudFront <https://console.aws.amazon.com>`; amazon's global `content delivery network <https://en.wikipedia.org/wiki/Content_delivery_network>`_.
+Here is a simple diagram of our target architecture:
 
 .. figure:: /images/static_s3_architecture.svg
    :target: /images/static_s3_architecture.svg
@@ -124,9 +116,8 @@ Here is the architecture we will be deploying:
 
    The static website architecture we will deploy.
 
-Our enduser will know our domain name (e.g hedgenet.info) and type
-https://hedgenet.info/ in their browser. The browser will end up making a 
-request to Route 53 which will point to a CloudFront distribution. The 
+Our enduser will access our website by typing https://hedgenet.info in the address bar of their browser. 
+The browser will end up making a request to AWS Route 53 which will point to a CloudFront distribution. The 
 distribution will be configured to use our previously created certificate and 
 will serve the content from an S3 bucket.
 
@@ -134,82 +125,129 @@ Since we want to deploy automatically, we will want to use a cloudformation
 template in order to specify our resources and how they interact with each 
 other. 
 
-I've already gone through the trouble of creating such a template for you. The
-template just formaly encodes, using a json/yaml schema, what we have already described 
-in our architecture diagram. It will admitedly force you to specify every details required
-for a successful deployment. Writing CloudFormation template may seem tedious 
+I have written the template that formally defines our architecture. I will leave you a moment to `take a look it here <https://github.com/magnus1984/hedgenet.info/blob/master/infrastructure/infra.yaml>`_
+
+Writing CloudFormation template may seem tedious 
 and overwhelming, but you should always remember that, at it's core, it is 
 really simple. It is just a matter of knowing the resources you need, having 
-the documentation nearby and turning the crank. Since the idea of this tutorial is to focus
-on the DevOps component rather then the details of the CloudFormation template, I will not go
-through it here but link to a copy of it on github. Anyways, you can find the 
-template in the `repo here <https://github.com>`_. 
+the documentation nearby and turning the crank.
+
+Once you feel like you have a grasp of what's going on in the template, you can start considering deployment.
 
 Deploying the infrastructure
 ++++++++++++++++++++++++++++
 For our blogging use case, we expect the architecture to be very stable. Moreover, we will
 only have 1 environment (production). We will therefore deploy our architecture ourselves
-using the aws cli. 
+using the aws cli. Here is how I deploy the infrastructure for this website:
 
 .. code-block:: bash
 
-   cd infrastructure
-   aws cloudformation create-stack --stack-name hedgenetinfo-prod --template-body file://infra.yaml
+   git https://github.com/magnus1984/hedgenet.info.git
+   cd hedgenet.info/infrastructure
+   aws cloudformation create-stack --stack-name hedgenetinfo-prod --template-body file://infra.yaml --parameters ParameterKey=DomainName,ParameterValue=hedgenet.info \
+   ParameterKey=CertificateArn,ParameterValue=<MY_CERTIFICATE-ARN>
 
-Allow some time for the architecture to be deployed. I have found while testing that CloudFront distribution
+You need to allow for some time for the architecture to be deployed. I have found while testing that CloudFront distribution
 can take on the order of hours to be fully deployed and show the CREATE_COMPLETE status in CloudFormation.
 
-Now that we have the architecture in place, let's move to the DevOps pipeline that we will build using AWS CodeBuild.
+Now that we have the architecture in place, let's move to the DevOps part that we will build using AWS CodeBuild.
 
-DevOps pipeline
----------------
+DevOps
+------
 the DevOps pipeline will allow us to automatically deploy our new website content
 onto the infrastructure we have specified in our CloudFormation template. Upon a commit
-on the MASTER branch of our website repository, we want the following things to happen:
+and push to our website repository, we want the following things to happen:
 
-1. build the static assets to be deployed deployed onto the infrastructure.
+1. build the static assets to be deployed onto the infrastructure.
 2. upload the static assets onto the S3 bucket created in the infrastructure.
 
 We can easily achieve this using CodeBuild. 
 
-How does CodeBuild work ?
-+++++++++++++++++++++++++
-At it's code, CodeBuild is a service that allows you to specify a set of information concerning 
-a machine that will be used to *build* your project. By *build* we mean some kind of operation (e.g: compiling) that
-will take an input and return an output at the end. In our case, the blog is a collection of post written in Restructured Test and 
+What is CodeBuild ?
++++++++++++++++++++
+At it's core, CodeBuild is a service that allows you to specify a set of information concerning 
+a machine that will be used to *build* a project. By *build* we mean spplying ome kind of operation (e.g: compiling) that
+will take an input and return an output at the end. In our case, the blog is a collection of input files written in Restructured Text and 
 the build operation will parse those file and produce another set of files in valid html. 
 
 The information that CodeBuild expects you to specify for a build includes:
 
-1. What operating system do you want ?
-2. What is the *runtime* that you will be using ?
-3. Where can I find the inpout to run the operation on ?
-4. What operation should I perform on the Input ?
-5. Where do you want to store the Output ?
+1. What operating system s required for your build machine ?
+2. What is the *runtime* that you will be using (e.g: Java, Nodejs, Python) ?
+3. Where can I find the inpout of the build ?
+4. What is the operation that I should perform on the input ?
+5. Where do you want to store the output ?
 
-With that information, CodeBuild is responsible of creating a build server for you and running instruction that are found
+After you specify that information, CodeBuild is responsible for creating a build server you and running instructions that are found
 in a file named buildspec.yaml each time there is a change in your inpout source. 
 
-A picture of what our pipeline will look like should emerge. Ultimately this is what we want:
+In the case of this blog, this is what the build project looks like:
 
 .. figure:: /images/static_codebuild_pipeline.png
    :target: /images/static_codebuild_pipeline.png
    :class: thumbnail
    :alt: CI setup 
 
-   We will let CodeBuild manage the deployment for us
+   The build project and it's relationship with the Architecture through S3
 
-Pipeline specification using CloudFormation
-+++++++++++++++++++++++++++++++++++++++++++
-Just as for our architecture, we will specify our DevOps Pipeline using CloudFormation. I want to make the DevOps
-part of this tutorial a point of focus so I will go trhough some important part of the CloudFormation Template. You can
-find the 
+Using Cloudformation to specify our DevOps artifacts
+++++++++++++++++++++++++++++++++++++++++++++++++++++
+Just as for our architecture, we will specify our DevOps component using CloudFormation. This allows us to have
+everything that is required to operate the blog under one single source code repository and to deploy everything
+automatically.
 
+Again, `I will link here <https://github.com/magnus1984/hedgenet.info/blob/master/devops/pipeline.yaml>`_ to the 
+template and let you have a look at it. 
+
+The *tricky* part in this template is that you need to create a proper IAM service role for AWS CodeBuild in order to
+carry out to action of deploying to the S3 bucket, as shown on the pipeline image above. This means that the role will required
+permission to write files to the bucket.
+
+Also noteworthy is our use of environment variables for the build project. As we will see in the next section, we will ask CodeBuild
+,via a buildsec file, to upload the static assets to an S3 bucket. Since all CodeBuild server come up with a version of the aws cli packaged,
+we can use something like:
+
+.. code-block:: bash
+
+    aws s3 sync output $DEPLOYMENT_S3_BUCKET_NAME
+
+Where DEPLOYMENT_S3_BUCKET_NAME is an environment variable of the CodeBuild server that we set through an environment variable. To get the value of that environment
+variable, we simply ask the user to provide the bucket name at deploy time by declaring a ProjectName parameter in the template.
+
+We are almost there to fully automated, the only thing that is left to specify is the operation we want CodeBuild to perform for us. This is done through
+a buildspec file
 
 The buildspec file
 ++++++++++++++++++
-In our buildspec.yml file, we specify what needs to be done in order to build and deploy our static assets.
-Here is what the buildspec file looks like:
+When a source change is detected in your environment, CodeBuild will execute commands that it finds in a file named buildspec.yml (by default). A buildspec file
+is pretty self explanatory so let's just take a look at it:
+
+.. include:: ../buildspec.yml
+
+The file specify phases (install, build and post_build) and a command to run at each of these phases.
+
+Deploying the project
++++++++++++++++++++++
+This is how I deploy the build project for the blog:
+
+.. code-block:: bash
+
+   git https://github.com/magnus1984/hedgenet.info.git
+   cd hedgenet.info/devops
+   aws cloudformation create-stack --stack-name hedgenetinfobuild-prod --template-body file://pipeline.yaml --parameters ParameterKey=ProjectName,ParameterValue=hedgenetbuild \
+   ParameterKey=GithubCloneUrl,ParameterValue=https://github.com/magnus1984/hedgenet.info.git ParameterKey=DomainName,ParameterValue=hedgenet.info
+
+**IMPORTANT NOTE**: you need to allow aws codebuild to access your repository in github if this is the first time that you create such a pipeline. The easiest way to do that
+is to use the CodeBuild console to create a new project with a github repo as a source and follow the instructions. Somewhere along the steps there will be an Oauth workflow 
+asking you to grant authorization to AWS codebuild. This needs to be done only once per account, per region you are deploying builds.
+
+Once the project is deployed, new commits to the repo should trigger a build. Here is what a successful build looks like in the AWS console:
+
+
+.. figure:: /images/build_phases.png
+   :target: /images/build_phases.png
+   :class: thumbnail
+   :alt: Console showing the successful phases of a build
 
 
 Conclusion
@@ -219,3 +257,5 @@ All of the infrastructure needed to achieve this goal is specified in CloudForma
 (including the DevOps pipeline). Publishing new content is simply a matter of pushing changes to
 the master branch of your website repository. What you just built makes for a very modern and convenient
 way to blog while maintaining total control over everything. Congratulations !
+
+If you have any questions about this blog, feel free to reach out to me at jonathan.pelletier1@gmail.com
