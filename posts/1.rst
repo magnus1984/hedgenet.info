@@ -1,9 +1,9 @@
-.. title: Deploying a static website on S3 with an SSL certificate using the AWS DevOps toolchain
+.. title: Deploying a static website on S3 with an SSL certificate using the AWS DevOps tools
 .. slug: static-s3-cloudformation
 .. date: 2018-07-10
-.. tags: aws, s3, static, cloudformation, devops
+.. tags: aws, s3, static, cloudformation, devops, cloudfront, blog, beginner
 .. author: Jonathan Pelletier
-.. description: tutorial on how to deploy, using cloudformation,  a static website using an AWS S3 bucket with an SSL certificate
+.. description: tutorial on how to deploy a static website using an AWS S3 bucket with an SSL certificate
 .. category: technology
 
 .. figure:: /images/blog_post_s3.png
