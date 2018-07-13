@@ -5,6 +5,9 @@ Parameters:
     DomainName:
         Type: String
         Description: The name of the Route 53 domain used to host the website
+    CertificateArn:
+        Type: String
+        Description: The ARN of the certificate to be used by your website
 
 Resources:
     HostingBucket:
@@ -60,7 +63,7 @@ Resources:
                     ViewerProtocolPolicy: redirect-to-https
                 PriceClass: PriceClass_All
                 ViewerCertificate:
-                    AcmCertificateArn: arn:aws:acm:us-east-1:676373688410:certificate/b18d2fe0-0277-4d42-9b4d-2d6d90f8c39a
+                    AcmCertificateArn: !Ref CertificateArn
                     SslSupportMethod: sni-only
 
                 Origins:
