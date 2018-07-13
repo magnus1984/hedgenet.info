@@ -220,6 +220,8 @@ All of the infrastructure needed to achieve this goal is specified in CloudForma
 the master branch of your website repository. What you just built makes for a very modern and convenient
 way to blog while maintaining total control over everything. Congratulations !
 
+I hope you enjoyed this blog post. Be sure to come back for more !
+
 
 
 

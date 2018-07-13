@@ -68,6 +68,8 @@ Resources:
                 Location: !Ref GithubCloneUrl
                 ReportBuildStatus: true
                 Type: GITHUB
+            Triggers:
+                Webhook: true
 
 
 
