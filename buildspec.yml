@@ -9,4 +9,4 @@ phases:
             - nikola build
     post_build:
         commands:
-            - aws s3 sync output s3://hedgenet.info
+            - aws s3 sync output s3://${DEPLOYMENT_S3_BUCKET_NAME}
