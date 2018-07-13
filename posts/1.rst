@@ -201,11 +201,15 @@ A picture of what our pipeline will look like should emerge. Ultimately this is 
 
 Pipeline specification using CloudFormation
 +++++++++++++++++++++++++++++++++++++++++++
-Just as for our architecture, we will specify our DevOps Pipeline using CloudFormation.
+Just as for our architecture, we will specify our DevOps Pipeline using CloudFormation. I want to make the DevOps
+part of this tutorial a point of focus so I will go trhough some important part of the CloudFormation Template. You can
+find the 
 
 
 The buildspec file
 ++++++++++++++++++
+In our buildspec.yml file, we specify what needs to be done in order to build and deploy our static assets.
+Here is what the buildspec file looks like:
 
 
 Conclusion

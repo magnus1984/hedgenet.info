@@ -2,32 +2,73 @@ AWSTemplateFormatVersion: '2010-09-09'
 Description: DevOps Pipeline Specification for a static website
 
 Parameters:
-    PipelineName:
+    ProjectName:
         Type: String
-        Description: Your desired project name
-    GithubRepo:
+        Description: A name that will be given to the CodeBuild project that will be created for you
+    GithubCloneUrl:
         Type: String
-        Description: Url to the repo containing the source
+        Description: the clone URL of the repository containing the source code for the website
     DomainName:
         Type: String
-        Description: fully qualified domain name under which the site will be accessible
+        Description: Fully qualified domain name under which the site will be accessible
 
 Resources:
     CodeBuildIAMRole:
         Type: 'AWS::IAM::Role'
         Properties:
-
+            AssumeRolePolicyDocument:
+                Version: '2012-10-17'
+                Statement:
+                    - Effect: "Allow"
+                      Principal:
+                          Service:
+                              - "codebuild.amazonaws.com"
+                      Action: "sts:AssumeRole"
+            Policies:
+                - PolicyName: !Sub ProjectName
+                  PolicyDocument:
+                      Version: '2012-10-17'
+                      Statement:
+                          - Effect: 'Allow'
+                            Resource:
+                                - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/${ProjectName}
+                                - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/${ProjectName}:*
+                            Action:
+                                - logs:CreateLogGroup
+                                - logs:CreateLogStream
+                                - logs:PutLogEvents
+                          - Effect: 'Allow'
+                            Resource:
+                                - !Sub arn:aws:s3:::codepipeline-${AWS::Region}*
+                                - !Sub arn:aws:s3:::${DomainName}*
+                            Action:
+                                - s3:PutObject
+                                - s3:GetObject
+                                - s3:GetObjectVersion
 
     BuildServer:
         Type: 'AWS::CodeBuild::Project'
         Properties: 
             Artifacts: 
-                Location: !Ref OutputBucketArn
-                Name: ''
-                Type: 'S3'
+                Type: 'NO_ARTIFACTS'
             Environment:
                 ComputeType: 'BUILD_GENERAL1_SMALL'
+                EnvironmentVariables:
+                    - Name: DEPLOYMENT_S3_BUCKET_NAME
+                      Type: PLAINTEXT
+                      Value: !Ref DomainName
                 Image: 'aws/codebuild/python:3.6.5'
                 Type: 'LINUX_CONTAINER'
-            Name: !Ref PipelineName
+            Name: !Ref ProjectName
+            ServiceRole: !Ref CodeBuildIAMRole
+            Source:
+                Auth:
+                    Type: OAUTH
+                GitCloneDepth: 1
+                Location: !Ref GithubCloneUrl
+                ReportBuildStatus: true
+                Type: GITHUB
+
+
+
     
