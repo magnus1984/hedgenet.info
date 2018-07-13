@@ -16,7 +16,7 @@ assets. This is especially well suited for hosting the output of static
 websites generators such as `jekyll <https://jekyllrb.com/>`_, 
 `nikola <https://getnikola.com/>`_ or `gatsby <https://www.gatsbyjs.org/>`_. 
 In this tutorial, I will show you how you can deploy your static website on S3 
-with an SSL certificate created in Certificate Manager.  I will be using this 
+with an SSL certificate created in Certificate Manager. I will be using this 
 blog as a use case and show you how you can leverage AWS tools such as 
 CloudFormation and CodeBuild to completely automate the 
 deployment of new content to your production environment.
@@ -219,9 +219,3 @@ All of the infrastructure needed to achieve this goal is specified in CloudForma
 (including the DevOps pipeline). Publishing new content is simply a matter of pushing changes to
 the master branch of your website repository. What you just built makes for a very modern and convenient
 way to blog while maintaining total control over everything. Congratulations !
-
-I hope you enjoyed this blog post. Be sure to come back for more !
-
-
-
-
