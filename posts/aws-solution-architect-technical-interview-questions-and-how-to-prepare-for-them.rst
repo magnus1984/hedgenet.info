@@ -25,7 +25,7 @@ in case you are waiting for your phone technical interview for a similar role at
 **NOTE**: If you are only interested in the list of the actual questions I was asked during the interview to help you prepare, please find it 
 in `this section <Specific interview questions_>`_
 
-The Software Architect hiring proces
+The solutions architect hiring proces
 ------------------------------------
 The role I applied for is officially named: AWS Bilingual Solutions Architect. After applying online, I was contacted by an AWS staff member describing the 
 hiring process. Here is my sligthly humourous, but still pretty accurate take on how their hiring process work:
